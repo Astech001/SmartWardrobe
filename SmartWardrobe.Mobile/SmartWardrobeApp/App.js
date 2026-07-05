@@ -29,7 +29,58 @@ const CATEGORIES = [
   { id: 12, name: 'Jeans' },
   { id: 13, name: 'Suit' },
   { id: 14, name: 'Blazer' },
+  { id: 15, name: 'Sneakers' },
+  { id: 16, name: 'Boots' },
+  { id: 17, name: 'Sandals' },
+  { id: 18, name: 'Bag' },
+  { id: 19, name: 'Hat' },
+  { id: 20, name: 'Scarf' },
+  { id: 21, name: 'Belt' },
+  { id: 22, name: 'Watch' },
+  { id: 23, name: 'Jewelry' },
 ];
+
+// AI Kombin için gerekli kategoriler ve minimum ürün sayıları
+const REQUIRED_CATEGORIES = [
+  { id: 1, name: 'TShirt', minCount: 2, icon: '👕' },
+  { id: 4, name: 'Sweater', minCount: 1, icon: '🧥' },
+  { id: 12, name: 'Jeans', minCount: 2, icon: '👖' },
+  { id: 15, name: 'Sneakers', minCount: 2, icon: '👟' },
+  { id: 5, name: 'Jacket', minCount: 1, icon: '🧥' },
+];
+
+const SEASONS = [
+  { id: 1, name: '☀️ Summer', value: 'Summer' },
+  { id: 2, name: '❄️ Winter', value: 'Winter' },
+  { id: 3, name: '🌿 Spring', value: 'Spring' },
+  { id: 4, name: '🍂 Fall', value: 'Fall' },
+];
+
+// Add Product ve AI Preference için TEK BİR WEATHERS
+const WEATHERS = [
+  { id: 1, name: '☀️ Sunny', value: 'Sunny', label: '☀️ Sunny', icon: '☀️' },
+  { id: 2, name: '⛅ Partly Cloudy', value: 'PartlyCloudy', label: '⛅ Partly Cloudy', icon: '⛅' },
+  { id: 3, name: '☁️ Cloudy', value: 'Cloudy', label: '☁️ Cloudy', icon: '☁️' },
+  { id: 4, name: '🌧️ Rainy', value: 'Rainy', label: '🌧️ Rainy', icon: '🌧️' },
+  { id: 5, name: '❄️ Snowy', value: 'Snowy', label: '❄️ Snowy', icon: '❄️' },
+];
+
+// Seçenek listeleri
+const OCCASIONS = [
+  { id: 'casual', label: '👕 Casual', icon: '👕' },
+  { id: 'formal', label: '👔 Formal', icon: '👔' },
+  { id: 'sport', label: '🏃 Sport', icon: '🏃' },
+  { id: 'business', label: '💼 Business', icon: '💼' },
+  { id: 'party', label: '🎉 Party', icon: '🎉' },
+];
+
+const TIME_OF_DAY = [
+  { id: 'morning', label: '🌅 Morning', icon: '🌅' },
+  { id: 'afternoon', label: '☀️ Afternoon', icon: '☀️' },
+  { id: 'evening', label: '🌆 Evening', icon: '🌆' },
+  { id: 'night', label: '🌙 Night', icon: '🌙' },
+];
+
 
 export default function App() {
   // Auth
@@ -63,6 +114,12 @@ export default function App() {
   const [newProductSeason, setNewProductSeason] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
+  // Season & Weather State (Add Product)
+  const [selectedSeason, setSelectedSeason] = useState('');
+  const [selectedWeather, setSelectedWeather] = useState('');
+  const [showSeasonPicker, setShowSeasonPicker] = useState(false);
+  const [showWeatherPicker, setShowWeatherPicker] = useState(false);
+
   // Photo Upload
   const [selectedImage, setSelectedImage] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -76,8 +133,11 @@ export default function App() {
   const [editBrand, setEditBrand] = useState('');
   const [editColor, setEditColor] = useState('');
   const [editSize, setEditSize] = useState('');
-  const [editSeason, setEditSeason] = useState('');
+  const [editSeason, setEditSeason] = useState('');        // ✅ SADECE BURADA
+  const [editWeather, setEditWeather] = useState('');      // ✅ SADECE BURADA
   const [showEditCategoryPicker, setShowEditCategoryPicker] = useState(false);
+  const [showEditSeasonPicker, setShowEditSeasonPicker] = useState(false);
+  const [showEditWeatherPicker, setShowEditWeatherPicker] = useState(false);
 
   // AI Outfit
   const [outfitSuggestions, setOutfitSuggestions] = useState([]);
@@ -90,6 +150,14 @@ export default function App() {
   const [filterSeason, setFilterSeason] = useState('');
   const [filterColor, setFilterColor] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+
+  // AI Outfit Preference State
+  const [showPreferenceModal, setShowPreferenceModal] = useState(false);
+  const [outfitOccasion, setOutfitOccasion] = useState('casual');
+  const [outfitTimeOfDay, setOutfitTimeOfDay] = useState('afternoon');
+  const [outfitWeather, setOutfitWeather] = useState('');
+  const [outfitTemperature, setOutfitTemperature] = useState('');
+
 
   // ================ LIFECYCLE ================
 
@@ -511,6 +579,14 @@ export default function App() {
       Alert.alert('Error', 'Please select a category!');
       return;
     }
+    if (!selectedSeason) {
+      Alert.alert('Error', 'Please select a season!');
+      return;
+    }
+    if (!selectedWeather) {
+      Alert.alert('Error', 'Please select a weather type!');
+      return;
+    }
     if (!uploadedImageUrl) {
       Alert.alert('Warning', 'Please upload a photo first!');
       return;
@@ -521,9 +597,10 @@ export default function App() {
         name: newProductName,
         category: parseInt(newProductCategory),
         brand: newProductBrand || undefined,
-        color: newProductColor || undefined,
+        color: newProductColor.trim(),
         size: newProductSize || undefined,
-        season: newProductSeason ? parseInt(newProductSeason) : undefined,
+        season: selectedSeason ? parseInt(selectedSeason) : undefined,
+        suitableWeather: selectedWeather ? parseInt(selectedWeather) : undefined,
         imageUrl: uploadedImageUrl,
         publicImageId: 'image_' + Date.now(),
         thumbnailUrl: uploadedImageUrl
@@ -536,16 +613,20 @@ export default function App() {
       console.log('✅ Product added successfully!');
       Alert.alert('Success', 'Product added successfully!');
 
+      // Formu temizle
       setNewProductName('');
       setNewProductCategory('');
       setNewProductBrand('');
       setNewProductColor('');
       setNewProductSize('');
-      setNewProductSeason('');
+      setSelectedSeason('');
+      setSelectedWeather('');
       setSelectedImage(null);
       setUploadedImageUrl(null);
       setShowAddForm(false);
       setShowCategoryPicker(false);
+      setShowSeasonPicker(false);
+      setShowWeatherPicker(false);
       fetchClothingItems();
     } catch (error) {
       console.log('❌ Failed to add product:', error.response?.data || error.message);
@@ -561,25 +642,54 @@ export default function App() {
       return;
     }
 
-    // Gardroptaki ürün sayısını kontrol et
-    const productCount = clothingItems.length;
+    // Eğer clothingItems boşsa, otomatik fetch yap
+    if (clothingItems.length === 0) {
+      await fetchClothingItems();
+    }
 
-    if (productCount < 3) {
-      Alert.alert(
-        'Not Enough Products',
-        `You need at least 3 products in your wardrobe to get outfit suggestions.\n\nCurrent: ${productCount} products\nNeed: ${3 - productCount} more products\n\nAdd products from different categories (TShirt, Jeans, Shoes, etc.)`,
-        [{ text: 'OK', style: 'default' }]
-      );
+    // Kategori analizi yap
+    const categoryAnalysis = analyzeCategories(clothingItems);
+    const missingCategories = categoryAnalysis.filter(c => c.count < c.minCount);
+    const hasEnoughProducts = missingCategories.length === 0;
+
+    // Eksik kategori varsa kullanıcıya göster
+    if (!hasEnoughProducts) {
+      let message = '⚠️ You need more products to get outfit suggestions!\n\n';
+      message += '📊 Your Wardrobe Status:\n';
+
+      categoryAnalysis.forEach(cat => {
+        const status = cat.count >= cat.minCount ? '✅' : '❌';
+        const emoji = cat.count >= cat.minCount ? '✅' : '⚠️';
+        message += `${status} ${cat.icon} ${cat.name}: ${cat.count}/${cat.minCount}\n`;
+      });
+
+      message += '\n💡 Add these missing items:\n';
+      missingCategories.forEach(cat => {
+        const need = cat.minCount - cat.count;
+        message += `  • ${cat.icon} ${need} more ${cat.name}(s)\n`;
+      });
+
+      message += `\n📝 Total: ${categoryAnalysis.reduce((sum, c) => sum + c.count, 0)} products`;
+      message += `\n📝 Need: ${missingCategories.reduce((sum, c) => sum + (c.minCount - c.count), 0)} more products`;
+
+      Alert.alert('📊 Wardrobe Analysis', message, [
+        { text: 'Add Products', onPress: () => setShowAddForm(true) },
+        { text: 'OK', style: 'cancel' },
+      ]);
       return;
     }
 
+    // Tüm kategoriler dolu, kombin önerisi al
     setIsLoadingSuggestions(true);
     setShowOutfitModal(true);
 
     try {
       const requestData = {
         excludeItems: [],
-        occasion: 'casual'
+        occasion: outfitOccasion,          // casual, formal, sport
+        timeOfDay: outfitTimeOfDay,        // morning, afternoon, evening, night
+        weather: outfitWeather,            // sunny, rainy, snowy, cloudy
+        temperature: outfitTemperature ? parseInt(outfitTemperature) : undefined,
       };
 
       const response = await axios.post(`${API_URL}/AI/outfit-suggestions`, requestData, {
@@ -612,14 +722,121 @@ export default function App() {
       setIsLoadingSuggestions(false);
     }
   };
-  const selectCategory = (categoryId) => {
-    setNewProductCategory(categoryId.toString());
-    setShowCategoryPicker(false);
+
+  const getOutfitSuggestionWithPreferences = async () => {
+    if (!token) {
+      Alert.alert('Warning', 'Please login first!');
+      return;
+    }
+
+    // Eğer clothingItems boşsa, otomatik fetch yap
+    if (clothingItems.length === 0) {
+      await fetchClothingItems();
+    }
+
+    // Kategori analizi yap
+    const categoryAnalysis = analyzeCategories(clothingItems);
+    const missingCategories = categoryAnalysis.filter(c => c.count < c.minCount);
+    const hasEnoughProducts = missingCategories.length === 0;
+
+    if (!hasEnoughProducts) {
+      let message = '⚠️ You need more products to get outfit suggestions!\n\n';
+      message += '📊 Your Wardrobe Status:\n';
+      categoryAnalysis.forEach(cat => {
+        const status = cat.count >= cat.minCount ? '✅' : '❌';
+        message += `${status} ${cat.icon} ${cat.name}: ${cat.count}/${cat.minCount}\n`;
+      });
+      message += '\n💡 Add these missing items:\n';
+      missingCategories.forEach(cat => {
+        const need = cat.minCount - cat.count;
+        message += `  • ${cat.icon} ${need} more ${cat.name}(s)\n`;
+      });
+      message += `\n📝 Total: ${categoryAnalysis.reduce((sum, c) => sum + c.count, 0)} products`;
+      message += `\n📝 Need: ${missingCategories.reduce((sum, c) => sum + (c.minCount - c.count), 0)} more products`;
+
+      Alert.alert('📊 Wardrobe Analysis', message, [
+        { text: 'Add Products', onPress: () => setShowAddForm(true) },
+        { text: 'OK', style: 'cancel' },
+      ]);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    setShowOutfitModal(true);
+
+    try {
+      // Kullanıcı tercihlerini backend'e gönder
+      const requestData = {
+        excludeItems: [],
+        occasion: outfitOccasion,
+        timeOfDay: outfitTimeOfDay,
+        weather: outfitWeather,
+        temperature: outfitTemperature ? parseInt(outfitTemperature) : undefined,
+      };
+
+      console.log('📤 Outfit request with preferences:', requestData);
+
+      const response = await axios.post(`${API_URL}/AI/outfit-suggestions`, requestData, {
+        headers: { 'Authorization': `Bearer ${token}` },
+        timeout: 15000
+      });
+
+      console.log('✅ Outfit suggestions:', response.data);
+      const suggestions = response.data.data?.suggestions || response.data.suggestions || [];
+
+      if (suggestions.length === 0) {
+        setOutfitSuggestions([]);
+        setMessage('👔 No outfit suggestions available. Try adding more products!');
+        Alert.alert(
+          'No Suggestions',
+          'AI could not create outfit combinations from your wardrobe.\n\nSuggestions:\n• Add products from different categories\n• Add at least 3-4 products\n• Try adding: TShirt, Jeans, Shoes, Jacket',
+          [{ text: 'OK', style: 'default' }]
+        );
+        setShowOutfitModal(false);
+      } else {
+        setOutfitSuggestions(suggestions);
+        setCount(count + 1);
+        setMessage(`👔 Outfit suggestion #${count + 1} ready!`);
+      }
+    } catch (error) {
+      console.log('❌ Failed to get outfit suggestion:', error.response?.data || error.message);
+      Alert.alert('Error', `Failed to get outfit suggestions: ${error.response?.data?.message || error.message}`);
+      setShowOutfitModal(false);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
   };
 
-  const selectEditCategory = (categoryId) => {
-    setEditCategory(categoryId.toString());
-    setShowEditCategoryPicker(false);
+  // Kategori analizi yapan yardımcı fonksiyon
+  const analyzeCategories = (items) => {
+    const result = REQUIRED_CATEGORIES.map(req => {
+      const count = items.filter(item => item.category === req.id).length;
+      return {
+        ...req,
+        count: count,
+        isComplete: count >= req.minCount,
+        need: Math.max(0, req.minCount - count)
+      };
+    });
+
+    // Ekstra kategorileri de ekle (kullanıcının eklediği diğer kategoriler)
+    const allCategoryIds = new Set(items.map(item => item.category));
+    const extraCategories = CATEGORIES
+      .filter(cat => allCategoryIds.has(cat.id) && !REQUIRED_CATEGORIES.some(req => req.id === cat.id))
+      .map(cat => {
+        const count = items.filter(item => item.category === cat.id).length;
+        return {
+          id: cat.id,
+          name: cat.name,
+          count: count,
+          minCount: 1,
+          icon: '📦',
+          isComplete: count >= 1,
+          need: Math.max(0, 1 - count)
+        };
+      });
+
+    return [...result, ...extraCategories];
   };
 
   // ================ RENDER ================
@@ -708,10 +925,10 @@ export default function App() {
             {/* ⬇️⬇️⬇️ GET OUTFIT SUGGESTION BUTONU ⬇️⬇️⬇️ */}
             <TouchableOpacity
               style={[styles.button, { backgroundColor: '#9b59b6', marginTop: 10 }]}
-              onPress={getOutfitSuggestion}
+              onPress={() => setShowPreferenceModal(true)}  // ✅ Preference Modal'ı aç
             >
               <Text style={styles.buttonText}>
-                {isLoadingSuggestions ? '🤖 Thinking...' : '🤖 Get Outfit Suggestion'}
+                🤖 AI Outfit Suggestion
               </Text>
             </TouchableOpacity>
             {/* ⬆️⬆️⬆️ GET OUTFIT SUGGESTION BUTONU ⬆️⬆️⬆️ */}
@@ -817,6 +1034,7 @@ export default function App() {
               <Text style={styles.sectionTitle}>📦 Add New Product</Text>
               <TextInput style={styles.input} placeholder="Product Name *" value={newProductName} onChangeText={setNewProductName} />
 
+              {/* Category Selector */}
               <View>
                 <TouchableOpacity style={styles.categorySelector} onPress={() => setShowCategoryPicker(!showCategoryPicker)}>
                   <Text style={styles.categorySelectorText}>
@@ -834,11 +1052,56 @@ export default function App() {
                   </ScrollView>
                 )}
               </View>
-
+              <TextInput
+                style={styles.input}
+                placeholder="Color * (e.g. Black, White, Blue)"
+                value={newProductColor}
+                onChangeText={setNewProductColor}
+              />
               <TextInput style={styles.input} placeholder="Brand (Optional)" value={newProductBrand} onChangeText={setNewProductBrand} />
-              <TextInput style={styles.input} placeholder="Color (Optional)" value={newProductColor} onChangeText={setNewProductColor} />
+
               <TextInput style={styles.input} placeholder="Size (Optional)" value={newProductSize} onChangeText={setNewProductSize} />
-              <TextInput style={styles.input} placeholder="Season (1-4)" value={newProductSeason} onChangeText={setNewProductSeason} keyboardType="numeric" />
+
+              {/* ⬇️⬇️⬇️ BURAYA EKLEYİN ⬇️⬇️⬇️ */}
+              {/* Season Dropdown */}
+              <View>
+                <Text style={styles.inputLabel}>Season *</Text>
+                <TouchableOpacity style={styles.categorySelector} onPress={() => setShowSeasonPicker(!showSeasonPicker)}>
+                  <Text style={styles.categorySelectorText}>
+                    {selectedSeason ? SEASONS.find(s => s.id === parseInt(selectedSeason))?.name : '📅 Select Season'}
+                  </Text>
+                  <Text style={styles.categorySelectorArrow}>▼</Text>
+                </TouchableOpacity>
+                {showSeasonPicker && (
+                  <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
+                    {SEASONS.map((season) => (
+                      <TouchableOpacity key={season.id} style={[styles.categoryItem, selectedSeason === season.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedSeason(season.id.toString()); setShowSeasonPicker(false); }}>
+                        <Text style={[styles.categoryItemText, selectedSeason === season.id.toString() && styles.categoryItemTextSelected]}>{season.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* Weather Dropdown */}
+              <View>
+                <Text style={styles.inputLabel}>Weather Type *</Text>
+                <TouchableOpacity style={styles.categorySelector} onPress={() => setShowWeatherPicker(!showWeatherPicker)}>
+                  <Text style={styles.categorySelectorText}>
+                    {selectedWeather ? WEATHERS.find(w => w.id === parseInt(selectedWeather))?.name : '🌤️ Select Weather'}
+                  </Text>
+                  <Text style={styles.categorySelectorArrow}>▼</Text>
+                </TouchableOpacity>
+                {showWeatherPicker && (
+                  <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
+                    {WEATHERS.map((weather) => (
+                      <TouchableOpacity key={weather.id} style={[styles.categoryItem, selectedWeather === weather.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedWeather(weather.id.toString()); setShowWeatherPicker(false); }}>
+                        <Text style={[styles.categoryItemText, selectedWeather === weather.id.toString() && styles.categoryItemTextSelected]}>{weather.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
 
               {/* PHOTO UPLOAD */}
               <View style={styles.photoUploadContainer}>
@@ -1078,6 +1341,112 @@ export default function App() {
         </View>
       </Modal>
 
+      {/* AI Outfit Preference Modal */}
+      <Modal visible={showPreferenceModal} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { maxHeight: '95%' }]}>
+            <Text style={styles.modalTitle}>🤖 AI Outfit Suggestion</Text>
+            <Text style={styles.modalSubtitle}>Customize your outfit preferences</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Occasion */}
+              <Text style={styles.preferenceLabel}>📍 Occasion</Text>
+              <View style={styles.preferenceRow}>
+                {OCCASIONS.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.preferenceChip,
+                      outfitOccasion === item.id && styles.preferenceChipActive,
+                    ]}
+                    onPress={() => setOutfitOccasion(item.id)}
+                  >
+                    <Text style={[
+                      styles.preferenceChipText,
+                      outfitOccasion === item.id && styles.preferenceChipTextActive,
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Time of Day */}
+              <Text style={styles.preferenceLabel}>🕐 Time of Day</Text>
+              <View style={styles.preferenceRow}>
+                {TIME_OF_DAY.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.preferenceChip,
+                      outfitTimeOfDay === item.id && styles.preferenceChipActive,
+                    ]}
+                    onPress={() => setOutfitTimeOfDay(item.id)}
+                  >
+                    <Text style={[
+                      styles.preferenceChipText,
+                      outfitTimeOfDay === item.id && styles.preferenceChipTextActive,
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Weather */}
+              <Text style={styles.preferenceLabel}>🌤️ Weather</Text>
+              <View style={styles.preferenceRow}>
+                {WEATHERS.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.preferenceChip,
+                      outfitWeather === item.id && styles.preferenceChipActive,
+                    ]}
+                    onPress={() => setOutfitWeather(item.id)}
+                  >
+                    <Text style={[
+                      styles.preferenceChipText,
+                      outfitWeather === item.id && styles.preferenceChipTextActive,
+                    ]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Temperature */}
+              <Text style={styles.preferenceLabel}>🌡️ Temperature (°C)</Text>
+              <TextInput
+                style={styles.preferenceInput}
+                placeholder="Enter temperature (e.g. 20)"
+                value={outfitTemperature}
+                onChangeText={setOutfitTemperature}
+                keyboardType="numeric"
+              />
+
+              <View style={styles.preferenceButtons}>
+                <TouchableOpacity
+                  style={[styles.button, styles.cancelButton]}
+                  onPress={() => setShowPreferenceModal(false)}
+                >
+                  <Text style={styles.buttonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.button, { backgroundColor: '#9b59b6', flex: 2 }]}
+                  onPress={() => {
+                    setShowPreferenceModal(false);
+                    getOutfitSuggestionWithPreferences();
+                  }}
+                >
+                  <Text style={styles.buttonText}>🤖 Get Suggestion</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       <View style={styles.features}>
         <Text style={styles.featureTitle}>📋 Features:</Text>
         <Text style={styles.featureItem}>✅ Wardrobe Management</Text>
@@ -1112,6 +1481,56 @@ const styles = StyleSheet.create({
   message: { fontSize: 18, textAlign: 'center', marginBottom: 10, color: '#34495e' },
   backendStatus: { textAlign: 'center', fontSize: 14, marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: '#ecf0f1', color: '#2c3e50' },
   counter: { textAlign: 'center', marginTop: 15, fontSize: 16, color: '#7f8c8d' },
+
+  // Preference Styles
+  preferenceLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  preferenceRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  preferenceChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    backgroundColor: '#fff',
+    marginRight: 6,
+    marginBottom: 6,
+  },
+  preferenceChipActive: {
+    backgroundColor: '#9b59b6',
+    borderColor: '#9b59b6',
+  },
+  preferenceChipText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+  },
+  preferenceChipTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  preferenceInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  preferenceButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 15,
+    gap: 10,
+  },
 
   // Search & Filter
   searchContainer: { backgroundColor: 'white', borderRadius: 15, padding: 15, marginVertical: 10, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 5 },
