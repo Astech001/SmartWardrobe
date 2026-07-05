@@ -1,0 +1,79 @@
+# Visual Studio
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj.filters
+*.vcxproj.user
+*.dbmdl
+*.dbproj.schemaview
+*.publishsettings
+*.vcxproj
+*.sln
+bin/
+obj/
+Debug/
+Release/
+.vs/
+.vscode/
+
+# .NET
+*.dll
+*.exe
+*.pdb
+*.cache
+*.nupkg
+*.pidb
+*.pidbproj
+*.webinfo
+*.pidbproj
+*.pidbproj.user
+*.pidbproj.vspscc
+*.pidbproj.vspscc
+*.pidbproj.vspscc
+
+# Node / Expo
+node_modules/
+npm-debug.log
+yarn-error.log
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Uploads
+uploads/
+wwwroot/uploads/

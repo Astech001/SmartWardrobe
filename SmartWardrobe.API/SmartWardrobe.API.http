@@ -1,0 +1,6 @@
+@SmartWardrobe.API_HostAddress = http://localhost:5190
+
+GET {{SmartWardrobe.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
