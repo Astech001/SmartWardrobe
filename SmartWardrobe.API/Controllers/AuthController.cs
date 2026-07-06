@@ -1,8 +1,12 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartWardrobe.Application.DTOs.Auth;
 using SmartWardrobe.Application.Interfaces.Services;
+using SmartWardrobe.Domain.Enums;
+using SmartWardrobe.Persistence.UnitOfWork;
+using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace SmartWardrobe.API.Controllers
 {
@@ -11,10 +15,12 @@ namespace SmartWardrobe.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IUnitOfWork unitOfWork)
         {
             _authService = authService;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpPost("register")]
@@ -64,7 +70,7 @@ namespace SmartWardrobe.API.Controllers
         {
             try
             {
-                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
                 if (userIdClaim != null && Guid.TryParse(userIdClaim.Value, out Guid userId))
                 {
                     await _authService.LogoutAsync(userId);
@@ -75,6 +81,52 @@ namespace SmartWardrobe.API.Controllers
             {
                 return BadRequest(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpGet("profile")]
+        [Authorize]
+        public async Task<IActionResult> GetProfile()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+                return Unauthorized();
+
+            if (!Guid.TryParse(userIdClaim.Value, out var userId))
+                return BadRequest(new { message = "Invalid user ID" });
+
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
+
+            var plan = user.Plan;
+            var photoLimit = GetPhotoLimit(plan);
+            var remainingPhotoCount = plan == SubscriptionPlan.Ultimate ? -1 : photoLimit - user.UsedPhotoCount;
+
+            return Ok(new
+            {
+                user.FullName,
+                user.Email,
+                Plan = (int)plan,
+                PlanName = plan.ToString(),
+                user.UsedPhotoCount,
+                PhotoLimit = photoLimit,
+                RemainingPhotoCount = remainingPhotoCount,
+                IsUnlimited = plan == SubscriptionPlan.Ultimate,
+                user.CreatedAt,
+                user.SubscriptionExpiryDate
+            });
+        }
+
+        private int GetPhotoLimit(SubscriptionPlan plan)
+        {
+            return plan switch
+            {
+                SubscriptionPlan.Free => 20,
+                SubscriptionPlan.Plus => 200,
+                SubscriptionPlan.Pro => 500,
+                SubscriptionPlan.Ultimate => -1,
+                _ => 20
+            };
         }
     }
 

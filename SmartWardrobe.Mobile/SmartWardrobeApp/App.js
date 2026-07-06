@@ -139,6 +139,10 @@ export default function App() {
   const [filterColor, setFilterColor] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Profile State
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+
   // ================ LIFECYCLE ================
 
   useEffect(() => {
@@ -179,6 +183,21 @@ export default function App() {
       setSubscription(response.data);
     } catch (error) {
       console.log('❌ Failed to fetch subscription:', error.message);
+    }
+  };
+
+  // ================ PROFİL ================
+
+  const fetchUserProfile = async () => {
+    if (!token) return;
+    try {
+      const response = await axios.get(`${API_URL}/Auth/profile`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('✅ User profile RAW:', JSON.stringify(response.data, null, 2)); // ← EKLEYİN
+      setUserProfile(response.data);
+    } catch (error) {
+      console.log('❌ Failed to fetch profile:', error.message);
     }
   };
 
@@ -255,6 +274,8 @@ export default function App() {
         setMessage('🟢 Login successful! Welcome!');
         Alert.alert('Success', 'Login successful!');
         await fetchClothingItemsWithToken(tokenData);
+        await fetchUserProfile(); // ✅ PROFİL VERİLERİNİ GETİR
+
       } else {
         Alert.alert('Error', 'Token not received!');
       }
@@ -882,6 +903,16 @@ export default function App() {
               <Text style={styles.buttonText}>🚪 Logout</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#3498db', marginTop: 10 }]}
+              onPress={() => {
+                fetchUserProfile();
+                setShowProfileModal(true);
+              }}
+            >
+              <Text style={styles.buttonText}>👤 Profile</Text>
+            </TouchableOpacity>
+
             <Text style={styles.counter}>Total Suggestions: {count}</Text>
           </View>
 
@@ -1127,6 +1158,76 @@ export default function App() {
           )}
         </View>
       )}
+
+      {/* PROFİL MODAL */}
+      <Modal visible={showProfileModal} animationType="slide" transparent={true}>
+        <View style={styles.modalContainer}>
+          <View style={[styles.modalContent, { maxHeight: '95%' }]}>
+            <View style={styles.profileHeader}>
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileAvatarText}>
+                  {userProfile?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+              <Text style={styles.profileName}>{userProfile?.fullName || 'User'}</Text>
+              <Text style={styles.profileEmail}>{userProfile?.email || 'Email not set'}</Text>
+              <Text style={styles.profileDate}>
+                Member since: {userProfile?.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A'}
+              </Text>
+            </View>
+
+            <View style={styles.profileCard}>
+              <Text style={styles.profileCardTitle}>📊 Subscription</Text>
+              <View style={styles.profilePlanRow}>
+                <Text style={styles.profilePlanName}>
+                  {PLANS.find(p => p.id === userProfile?.plan)?.icon} {PLANS.find(p => p.id === userProfile?.plan)?.name || 'Free'}
+                </Text>
+                <View style={styles.subscriptionStatus}>
+                  <View style={styles.greenTick} />
+                  <Text style={styles.subscriptionStatusText}>Active</Text>
+                </View>
+              </View>
+              <View style={styles.profilePhotoStats}>
+                <Text style={styles.profilePhotoText}>
+                  📸 Used: {userProfile?.usedPhotoCount ?? 0} photos
+                </Text>
+                <Text style={styles.profilePhotoText}>
+                  📸 Limit: {userProfile?.plan === 3 ? '∞' : (userProfile?.monthlyPhotoLimit ?? 20)}
+                </Text>
+                <Text style={styles.profilePhotoText}>
+                  📸 Remaining: {userProfile?.plan === 3 ? '∞' : (userProfile?.remainingPhotoCount ?? 0)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.button, { backgroundColor: '#9b59b6', marginTop: 10 }]}
+                onPress={() => {
+                  setShowProfileModal(false);
+                  setShowSubscriptionModal(true);
+                }}
+              >
+                <Text style={styles.buttonText}>⬆️ Upgrade Plan</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#e74c3c', marginTop: 10 }]}
+              onPress={() => {
+                setShowProfileModal(false);
+                logout();
+              }}
+            >
+              <Text style={styles.buttonText}>🚪 Logout</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#7f8c8d', marginTop: 10 }]}
+              onPress={() => setShowProfileModal(false)}
+            >
+              <Text style={styles.buttonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* EDIT MODAL */}
       <Modal visible={showEditModal} animationType="slide" transparent={true}>
@@ -1482,6 +1583,74 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: 'white',
     fontSize: 16,
+  },
+
+  // Profile Styles
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  profileAvatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#3498db',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profileAvatarText: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: '#7f8c8d',
+    marginTop: 2,
+  },
+  profileDate: {
+    fontSize: 14,
+    color: '#bdc3c7',
+    marginTop: 2,
+  },
+  profileCard: {
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 15,
+    marginVertical: 10,
+  },
+  profileCardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2c3e50',
+    marginBottom: 10,
+  },
+  profilePlanRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  profilePlanName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+  },
+  profilePhotoStats: {
+    gap: 4,
+  },
+  profilePhotoText: {
+    fontSize: 14,
+    color: '#7f8c8d',
   },
 
   // Search & Filter
