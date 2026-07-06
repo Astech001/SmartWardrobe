@@ -475,6 +475,25 @@ export default function App() {
     }
   };
 
+  // ================ KATEGORİ GRUPLAMA ================
+
+  const groupProductsByCategory = (items) => {
+    const grouped = {};
+    items.forEach(item => {
+      const categoryId = item.category;
+      const categoryName = CATEGORIES.find(c => c.id === categoryId)?.name || 'Unknown';
+      if (!grouped[categoryId]) {
+        grouped[categoryId] = {
+          categoryId,
+          categoryName,
+          items: []
+        };
+      }
+      grouped[categoryId].items.push(item);
+    });
+    return Object.values(grouped);
+  };
+
   // ================ SEARCH & FILTER ================
 
   const applyFilters = () => {
@@ -1154,29 +1173,49 @@ export default function App() {
           {clothingItems.length > 0 ? (
             <View style={styles.features}>
               <Text style={styles.featureTitle}>
-                👗 Wardrobe Products ({filteredItems.length > 0 ? filteredItems.length : clothingItems.length})
+                👗 Wardrobe Products ({clothingItems.length})
               </Text>
-              {(filteredItems.length > 0 ? filteredItems : clothingItems).map((item, index) => (
-                <View key={index} style={styles.productItem}>
-                  <TouchableOpacity style={styles.productContent} onPress={() => openEditModal(item)}>
-                    {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.productThumbnail} />}
-                    <Text style={styles.productName}>• {item.name || 'Product'}{item.brand ? ` (${item.brand})` : ''}</Text>
-                    <View style={styles.productDetails}>
-                      {item.category && <Text style={styles.productDetail}>Category: {CATEGORIES.find(c => c.id === item.category)?.name || item.category}</Text>}
-                      {item.color && <Text style={styles.productDetail}>Color: {item.color}</Text>}
-                      {item.size && <Text style={styles.productDetail}>Size: {item.size}</Text>}
-                    </View>
-                  </TouchableOpacity>
-                  <View style={styles.productActions}>
-                    <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => openEditModal(item)}>
-                      <Text style={styles.actionButtonText}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteProduct(item.id)}>
-                      <Text style={styles.actionButtonText}>🗑️</Text>
-                    </TouchableOpacity>
+
+              <ScrollView
+                style={styles.productScrollView}
+                showsVerticalScrollIndicator={true}
+                nestedScrollEnabled={true}
+              >
+                {groupProductsByCategory(filteredItems.length > 0 ? filteredItems : clothingItems).map((group) => (
+                  <View key={group.categoryId} style={styles.categoryGroup}>
+                    <Text style={styles.categoryGroupTitle}>
+                      {group.categoryName} ({group.items.length})
+                    </Text>
+                    {group.items.map((item, index) => (
+                      <View key={index} style={styles.productItem}>
+                        <TouchableOpacity style={styles.productContent} onPress={() => openEditModal(item)}>
+                          {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={styles.productThumbnail} />}
+                          <Text style={styles.productName}>• {item.name || 'Product'}{item.brand ? ` (${item.brand})` : ''}</Text>
+                          <View style={styles.productDetails}>
+                            {item.color && <Text style={styles.productDetail}>Color: {item.color}</Text>}
+                            {item.size && <Text style={styles.productDetail}>Size: {item.size}</Text>}
+                          </View>
+                        </TouchableOpacity>
+                        <View style={styles.productActions}>
+                          <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => openEditModal(item)}>
+                            <Text style={styles.actionButtonText}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity style={[styles.actionButton, styles.deleteButton]} onPress={() => deleteProduct(item.id)}>
+                            <Text style={styles.actionButtonText}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
                   </View>
-                </View>
-              ))}
+                ))}
+              </ScrollView>
+
+              {/* Tüm ürün sayısı */}
+              <View style={styles.totalCountContainer}>
+                <Text style={styles.totalCountText}>
+                  Total: {clothingItems.length} products
+                </Text>
+              </View>
             </View>
           ) : (
             <View style={styles.emptyContainer}>
@@ -1593,6 +1632,36 @@ const styles = StyleSheet.create({
   message: { fontSize: 18, textAlign: 'center', marginBottom: 10, color: '#34495e' },
   backendStatus: { textAlign: 'center', fontSize: 14, marginTop: 10, padding: 10, borderRadius: 8, backgroundColor: '#ecf0f1', color: '#2c3e50' },
   counter: { textAlign: 'center', marginTop: 15, fontSize: 16, color: '#7f8c8d' },
+
+  // Stillerin içine ekleyin
+  productScrollView: {
+    maxHeight: 500, // 4-5 ürün gösterir, gerisi scroll
+  },
+  categoryGroup: {
+    marginBottom: 15,
+  },
+  categoryGroupTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2c3e50',
+    marginBottom: 8,
+    paddingHorizontal: 5,
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  totalCountContainer: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    alignItems: 'center',
+  },
+  totalCountText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    fontWeight: '500',
+  },
 
   // Loading
   loadingContainer: {
