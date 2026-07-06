@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Alert, TextInput,
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
+import React, { useRef } from 'react';
 
 const API_URL = 'http://192.168.0.11:5190/api';
 
@@ -142,6 +143,11 @@ export default function App() {
   // Profile State
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
+
+  // ... App fonksiyonu içinde
+  const scrollViewRef = useRef(null);
+
+  const addFormRef = useRef(null);
 
   // ================ LIFECYCLE ================
 
@@ -787,7 +793,7 @@ export default function App() {
   // ================ RENDER ================
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView ref={scrollViewRef} contentContainerStyle={styles.container}>
 
       {/* Loading Spinner */}
       {isLoading && (
@@ -894,11 +900,36 @@ export default function App() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.button, { backgroundColor: '#2ecc71', marginTop: 10 }]} onPress={fetchClothingItems}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#2ecc71', marginTop: 10 }]}
+              onPress={async () => {
+                await fetchClothingItems();
+                // ✅ Ürün listesine scroll yap
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 850, animated: true });
+                }, 300);
+              }}
+            >
               <Text style={styles.buttonText}>🔄 Fetch Products</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.button, { backgroundColor: '#f39c12', marginTop: 10 }]} onPress={() => setShowAddForm(!showAddForm)}>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#f39c12', marginTop: 10 }]}
+              onPress={() => {
+                setShowAddForm(!showAddForm);
+                if (!showAddForm) {
+                  setTimeout(() => {
+                    addFormRef.current?.measureLayout(
+                      scrollViewRef.current,
+                      (x, y) => {
+                        scrollViewRef.current?.scrollTo({ y: y - 100, animated: true });
+                      },
+                      () => { }
+                    );
+                  }, 300);
+                }
+              }}
+            >
               <Text style={styles.buttonText}>{showAddForm ? '❌ Close Form' : '➕ Add New Product'}</Text>
             </TouchableOpacity>
 
@@ -1001,123 +1032,124 @@ export default function App() {
 
           {/* ADD PRODUCT FORM */}
           {showAddForm && (
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>📦 Add New Product</Text>
+            <View ref={addFormRef}>
+              <View style={styles.card}>
+                <Text style={styles.sectionTitle}>📦 Add New Product</Text>
 
-              <Text style={styles.inputLabel}>Product Name *</Text>
-              <TextInput style={styles.input} placeholder="Product Name *" value={newProductName} onChangeText={setNewProductName} />
+                <Text style={styles.inputLabel}>Product Name *</Text>
+                <TextInput style={styles.input} placeholder="Product Name *" value={newProductName} onChangeText={setNewProductName} />
 
-              <Text style={styles.inputLabel}>Category *</Text>
-              <View>
-                <TouchableOpacity style={styles.categorySelector} onPress={() => setShowCategoryPicker(!showCategoryPicker)}>
-                  <Text style={styles.categorySelectorText}>
-                    {newProductCategory ? CATEGORIES.find(c => c.id === parseInt(newProductCategory))?.name || 'Select Category' : '📂 Select Category *'}
-                  </Text>
-                  <Text style={styles.categorySelectorArrow}>▼</Text>
-                </TouchableOpacity>
-                {showCategoryPicker && (
-                  <ScrollView style={styles.categoryList} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
-                    {CATEGORIES.map((cat) => (
-                      <TouchableOpacity key={cat.id} style={[styles.categoryItem, newProductCategory === cat.id.toString() && styles.categoryItemSelected]} onPress={() => selectCategory(cat.id)}>
-                        <Text style={[styles.categoryItemText, newProductCategory === cat.id.toString() && styles.categoryItemTextSelected]}>{cat.id}. {cat.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-
-              <Text style={styles.inputLabel}>Color *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Color * (e.g. Black, White, Blue)"
-                value={newProductColor}
-                onChangeText={setNewProductColor}
-              />
-
-              <Text style={styles.inputLabel}>Season *</Text>
-              <View>
-                <TouchableOpacity style={styles.categorySelector} onPress={() => setShowSeasonPicker(!showSeasonPicker)}>
-                  <Text style={styles.categorySelectorText}>
-                    {selectedSeason ? SEASONS.find(s => s.id === parseInt(selectedSeason))?.name : '📅 Select Season'}
-                  </Text>
-                  <Text style={styles.categorySelectorArrow}>▼</Text>
-                </TouchableOpacity>
-                {showSeasonPicker && (
-                  <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
-                    {SEASONS.map((season) => (
-                      <TouchableOpacity key={season.id} style={[styles.categoryItem, selectedSeason === season.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedSeason(season.id.toString()); setShowSeasonPicker(false); }}>
-                        <Text style={[styles.categoryItemText, selectedSeason === season.id.toString() && styles.categoryItemTextSelected]}>{season.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-
-              <Text style={styles.inputLabel}>Weather Type *</Text>
-              <View>
-                <TouchableOpacity style={styles.categorySelector} onPress={() => setShowWeatherPicker(!showWeatherPicker)}>
-                  <Text style={styles.categorySelectorText}>
-                    {selectedWeather ? WEATHERS.find(w => w.id === parseInt(selectedWeather))?.name : '🌤️ Select Weather'}
-                  </Text>
-                  <Text style={styles.categorySelectorArrow}>▼</Text>
-                </TouchableOpacity>
-                {showWeatherPicker && (
-                  <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
-                    {WEATHERS.map((weather) => (
-                      <TouchableOpacity key={weather.id} style={[styles.categoryItem, selectedWeather === weather.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedWeather(weather.id.toString()); setShowWeatherPicker(false); }}>
-                        <Text style={[styles.categoryItemText, selectedWeather === weather.id.toString() && styles.categoryItemTextSelected]}>{weather.name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-              </View>
-
-              <Text style={styles.inputLabel}>Brand (Optional)</Text>
-              <TextInput style={styles.input} placeholder="Brand (Optional)" value={newProductBrand} onChangeText={setNewProductBrand} />
-
-              <Text style={styles.inputLabel}>Size (Optional)</Text>
-              <TextInput style={styles.input} placeholder="Size (Optional)" value={newProductSize} onChangeText={setNewProductSize} />
-
-              {/* PHOTO UPLOAD */}
-              <View style={styles.photoUploadContainer}>
-                <Text style={styles.photoUploadTitle}>📸 Product Photo</Text>
-                <View style={styles.photoButtonsRow}>
-                  <TouchableOpacity style={[styles.photoButton, { backgroundColor: '#3498db' }]} onPress={takePhoto}>
-                    <Text style={styles.photoButtonText}>📷 Camera</Text>
+                <Text style={styles.inputLabel}>Category *</Text>
+                <View>
+                  <TouchableOpacity style={styles.categorySelector} onPress={() => setShowCategoryPicker(!showCategoryPicker)}>
+                    <Text style={styles.categorySelectorText}>
+                      {newProductCategory ? CATEGORIES.find(c => c.id === parseInt(newProductCategory))?.name || 'Select Category' : '📂 Select Category *'}
+                    </Text>
+                    <Text style={styles.categorySelectorArrow}>▼</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={[styles.photoButton, { backgroundColor: '#2ecc71' }]} onPress={pickImage}>
-                    <Text style={styles.photoButtonText}>🖼️ Gallery</Text>
-                  </TouchableOpacity>
+                  {showCategoryPicker && (
+                    <ScrollView style={styles.categoryList} nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
+                      {CATEGORIES.map((cat) => (
+                        <TouchableOpacity key={cat.id} style={[styles.categoryItem, newProductCategory === cat.id.toString() && styles.categoryItemSelected]} onPress={() => selectCategory(cat.id)}>
+                          <Text style={[styles.categoryItemText, newProductCategory === cat.id.toString() && styles.categoryItemTextSelected]}>{cat.id}. {cat.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
                 </View>
 
-                {selectedImage && (
-                  <View style={styles.previewContainer}>
-                    <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
-                    {uploadedImageUrl ? (
-                      <Text style={styles.previewText}>✅ Uploaded!</Text>
-                    ) : isUploading ? (
-                      <Text style={styles.uploadingText}>⏳ Uploading...</Text>
-                    ) : (
-                      <Text style={styles.previewText}>📸 Selected</Text>
-                    )}
-                  </View>
-                )}
+                <Text style={styles.inputLabel}>Color *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Color * (e.g. Black, White, Blue)"
+                  value={newProductColor}
+                  onChangeText={setNewProductColor}
+                />
 
-                {selectedImage && !uploadedImageUrl && (
-                  <TouchableOpacity style={[styles.button, { backgroundColor: '#9b59b6', marginTop: 10 }]} onPress={uploadPhoto} disabled={isUploading}>
-                    <Text style={styles.buttonText}>{isUploading ? '⏳ Uploading...' : '☁️ Upload Photo'}</Text>
+                <Text style={styles.inputLabel}>Season *</Text>
+                <View>
+                  <TouchableOpacity style={styles.categorySelector} onPress={() => setShowSeasonPicker(!showSeasonPicker)}>
+                    <Text style={styles.categorySelectorText}>
+                      {selectedSeason ? SEASONS.find(s => s.id === parseInt(selectedSeason))?.name : '📅 Select Season'}
+                    </Text>
+                    <Text style={styles.categorySelectorArrow}>▼</Text>
                   </TouchableOpacity>
-                )}
+                  {showSeasonPicker && (
+                    <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
+                      {SEASONS.map((season) => (
+                        <TouchableOpacity key={season.id} style={[styles.categoryItem, selectedSeason === season.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedSeason(season.id.toString()); setShowSeasonPicker(false); }}>
+                          <Text style={[styles.categoryItemText, selectedSeason === season.id.toString() && styles.categoryItemTextSelected]}>{season.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
 
-                {uploadedImageUrl && <Text style={styles.uploadSuccessText}>✅ Photo uploaded successfully!</Text>}
+                <Text style={styles.inputLabel}>Weather Type *</Text>
+                <View>
+                  <TouchableOpacity style={styles.categorySelector} onPress={() => setShowWeatherPicker(!showWeatherPicker)}>
+                    <Text style={styles.categorySelectorText}>
+                      {selectedWeather ? WEATHERS.find(w => w.id === parseInt(selectedWeather))?.name : '🌤️ Select Weather'}
+                    </Text>
+                    <Text style={styles.categorySelectorArrow}>▼</Text>
+                  </TouchableOpacity>
+                  {showWeatherPicker && (
+                    <ScrollView style={styles.categoryList} nestedScrollEnabled={true}>
+                      {WEATHERS.map((weather) => (
+                        <TouchableOpacity key={weather.id} style={[styles.categoryItem, selectedWeather === weather.id.toString() && styles.categoryItemSelected]} onPress={() => { setSelectedWeather(weather.id.toString()); setShowWeatherPicker(false); }}>
+                          <Text style={[styles.categoryItemText, selectedWeather === weather.id.toString() && styles.categoryItemTextSelected]}>{weather.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  )}
+                </View>
+
+                <Text style={styles.inputLabel}>Brand (Optional)</Text>
+                <TextInput style={styles.input} placeholder="Brand (Optional)" value={newProductBrand} onChangeText={setNewProductBrand} />
+
+                <Text style={styles.inputLabel}>Size (Optional)</Text>
+                <TextInput style={styles.input} placeholder="Size (Optional)" value={newProductSize} onChangeText={setNewProductSize} />
+
+                {/* PHOTO UPLOAD */}
+                <View style={styles.photoUploadContainer}>
+                  <Text style={styles.photoUploadTitle}>📸 Product Photo</Text>
+                  <View style={styles.photoButtonsRow}>
+                    <TouchableOpacity style={[styles.photoButton, { backgroundColor: '#3498db' }]} onPress={takePhoto}>
+                      <Text style={styles.photoButtonText}>📷 Camera</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.photoButton, { backgroundColor: '#2ecc71' }]} onPress={pickImage}>
+                      <Text style={styles.photoButtonText}>🖼️ Gallery</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {selectedImage && (
+                    <View style={styles.previewContainer}>
+                      <Image source={{ uri: selectedImage.uri }} style={styles.previewImage} />
+                      {uploadedImageUrl ? (
+                        <Text style={styles.previewText}>✅ Uploaded!</Text>
+                      ) : isUploading ? (
+                        <Text style={styles.uploadingText}>⏳ Uploading...</Text>
+                      ) : (
+                        <Text style={styles.previewText}>📸 Selected</Text>
+                      )}
+                    </View>
+                  )}
+
+                  {selectedImage && !uploadedImageUrl && (
+                    <TouchableOpacity style={[styles.button, { backgroundColor: '#9b59b6', marginTop: 10 }]} onPress={uploadPhoto} disabled={isUploading}>
+                      <Text style={styles.buttonText}>{isUploading ? '⏳ Uploading...' : '☁️ Upload Photo'}</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {uploadedImageUrl && <Text style={styles.uploadSuccessText}>✅ Photo uploaded successfully!</Text>}
+                </View>
+
+                <TouchableOpacity style={[styles.button, { backgroundColor: '#2ecc71', marginTop: 10 }]} onPress={addProduct}>
+                  <Text style={styles.buttonText}>✅ Save Product</Text>
+                </TouchableOpacity>
               </View>
-
-              <TouchableOpacity style={[styles.button, { backgroundColor: '#2ecc71', marginTop: 10 }]} onPress={addProduct}>
-                <Text style={styles.buttonText}>✅ Save Product</Text>
-              </TouchableOpacity>
             </View>
           )}
-
           {/* PRODUCT LIST */}
           {clothingItems.length > 0 ? (
             <View style={styles.features}>
