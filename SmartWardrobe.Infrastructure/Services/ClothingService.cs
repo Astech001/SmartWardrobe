@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using SmartWardrobe.Application.DTOs.Clothing;
 using SmartWardrobe.Application.Interfaces.Services;
@@ -14,11 +15,16 @@ namespace SmartWardrobe.Infrastructure.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IRedisCacheService _cache;
 
-        public ClothingService(IUnitOfWork unitOfWork, ISubscriptionService subscriptionService)
+        public ClothingService(
+            IUnitOfWork unitOfWork,
+            ISubscriptionService subscriptionService,
+            IRedisCacheService cache)
         {
             _unitOfWork = unitOfWork;
             _subscriptionService = subscriptionService;
+            _cache = cache;
         }
 
         public async Task<ClothingItemDto> CreateClothingItemAsync(User user, CreateClothingItemDto dto)
@@ -71,6 +77,9 @@ namespace SmartWardrobe.Infrastructure.Services
             _unitOfWork.Users.Update(user);
             await _unitOfWork.CompleteAsync();
 
+            // Cache'i temizle (kullanıcının ürün listesi güncellendi)
+            await _cache.RemoveByPatternAsync($"user:{user.Id}:products:*");
+
             return MapToDto(clothingItem, user.FullName);
         }
 
@@ -89,6 +98,14 @@ namespace SmartWardrobe.Infrastructure.Services
 
         public async Task<ClothingListResponseDto> GetUserClothingItemsAsync(Guid userId, ClothingFilterDto filter)
         {
+            // Cache anahtarı oluştur
+            var cacheKey = $"user:{userId}:products:{JsonSerializer.Serialize(filter)}";
+
+            // Cache'ten kontrol et
+            var cachedResult = await _cache.GetAsync<ClothingListResponseDto>(cacheKey);
+            if (cachedResult != null)
+                return cachedResult;
+
             // Tüm kullanıcı ürünlerini getir
             var allItems = await _unitOfWork.ClothingItems
                 .FindAsync(c => c.UserId == userId);
@@ -170,7 +187,7 @@ namespace SmartWardrobe.Infrastructure.Services
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
             var dtos = pagedItems.Select(item => MapToDto(item, user?.FullName ?? "Unknown")).ToList();
 
-            return new ClothingListResponseDto
+            var result = new ClothingListResponseDto
             {
                 Items = dtos,
                 TotalCount = totalCount,
@@ -180,6 +197,11 @@ namespace SmartWardrobe.Infrastructure.Services
                 HasPreviousPage = pageNumber > 1,
                 HasNextPage = pageNumber < totalPages
             };
+
+            // Cache'e kaydet (5 dakika)
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
+
+            return result;
         }
 
         public async Task<ClothingItemDto> UpdateClothingItemAsync(Guid id, Guid userId, UpdateClothingItemDto dto)
@@ -272,6 +294,9 @@ namespace SmartWardrobe.Infrastructure.Services
             _unitOfWork.ClothingItems.Update(clothingItem);
             await _unitOfWork.CompleteAsync();
 
+            // Cache'i temizle
+            await _cache.RemoveByPatternAsync($"user:{userId}:products:*");
+
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
             return MapToDto(clothingItem, user?.FullName ?? "Unknown");
         }
@@ -292,6 +317,9 @@ namespace SmartWardrobe.Infrastructure.Services
             _unitOfWork.ClothingItems.Update(clothingItem);
             await _unitOfWork.CompleteAsync();
 
+            // Cache'i temizle
+            await _cache.RemoveByPatternAsync($"user:{userId}:products:*");
+
             return true;
         }
 
@@ -310,6 +338,9 @@ namespace SmartWardrobe.Infrastructure.Services
             _unitOfWork.ClothingItems.Update(clothingItem);
             await _unitOfWork.CompleteAsync();
 
+            // Cache'i temizle
+            await _cache.RemoveByPatternAsync($"user:{userId}:products:*");
+
             var user = await _unitOfWork.Users.GetByIdAsync(userId);
             return MapToDto(clothingItem, user?.FullName ?? "Unknown");
         }
@@ -323,13 +354,15 @@ namespace SmartWardrobe.Infrastructure.Services
             if (clothingItem == null)
                 throw new Exception("Ürün bulunamadı veya size ait değil");
 
-            // WearCount zaten int, nullable değil, direkt artır
             clothingItem.WearCount = clothingItem.WearCount + 1;
             clothingItem.LastWornDate = DateTime.UtcNow;
             clothingItem.UpdatedAt = DateTime.UtcNow;
 
             _unitOfWork.ClothingItems.Update(clothingItem);
             await _unitOfWork.CompleteAsync();
+
+            // Cache'i temizle
+            await _cache.RemoveByPatternAsync($"user:{userId}:products:*");
 
             return true;
         }

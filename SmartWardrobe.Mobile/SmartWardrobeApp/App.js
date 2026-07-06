@@ -180,7 +180,10 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       console.log('✅ Subscription status:', JSON.stringify(response.data, null, 2));
-      setSubscription(response.data);
+
+      // ✅ DÜZELTME: response.data.data'yı set et
+      const subscriptionData = response.data.data || response.data;
+      setSubscription(subscriptionData);
     } catch (error) {
       console.log('❌ Failed to fetch subscription:', error.message);
     }

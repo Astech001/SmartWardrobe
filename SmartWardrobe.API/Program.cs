@@ -50,6 +50,13 @@ builder.Services.AddPersistence(builder.Configuration);
 // Infrastructure
 builder.Services.AddInfrastructure();
 
+// ✅ REDIS CACHE EKLENDI
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"];
+    options.InstanceName = builder.Configuration["Redis:InstanceName"];
+});
+
 // JWT Authentication
 var key = Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -103,12 +110,12 @@ app.UseAuthorization();
 // Controllers
 app.MapControllers();
 
-// ✅ HERKESE AÇIK HEALTH ENDPOINT (Public)
-app.MapGet("/api/health", () => new { 
-    status = "Healthy", 
+// ✅ HERKESE ACIK HEALTH ENDPOINT (Public)
+app.MapGet("/api/health", () => new {
+    status = "Healthy",
     timestamp = DateTime.Now,
     message = "SmartWardrobe API is running!"
-}).AllowAnonymous(); // Herkese açık
+}).AllowAnonymous();
 
 // Migration
 using (var scope = app.Services.CreateScope())

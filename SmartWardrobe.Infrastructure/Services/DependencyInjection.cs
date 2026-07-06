@@ -14,6 +14,7 @@ namespace SmartWardrobe.Infrastructure
             services.AddScoped<IClothingService, ClothingService>();
             services.AddScoped<IStorageService, CloudinaryService>();
             services.AddScoped<IAIService, AIService>(); // YENİ
+            services.AddScoped<IRedisCacheService, RedisCacheService>();
 
             return services;
         }
