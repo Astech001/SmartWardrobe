@@ -57,6 +57,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = builder.Configuration["Redis:InstanceName"];
 });
 
+// ✅ DISTRIBUTED CACHE SERVISINI EKLE (Redis için)
+builder.Services.AddDistributedMemoryCache(); // Fallback olarak
+// Veya direkt Redis kullanımı için:
+// builder.Services.AddSingleton<IDistributedCache, RedisCache>();
+
 // JWT Authentication
 var key = Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"]);
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

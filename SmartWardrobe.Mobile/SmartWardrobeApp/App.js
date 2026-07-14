@@ -656,14 +656,16 @@ export default function App() {
         thumbnailUrl: uploadedImageUrl
       };
       console.log('📤 Adding product...', productData);
+
       await axios.post(`${API_URL}/Clothing`, productData, {
         headers: { 'Authorization': `Bearer ${token}` },
         timeout: 10000
       });
+
       console.log('✅ Product added successfully!');
       Alert.alert('Success', 'Product added successfully!');
 
-      // Formu temizle
+      // ✅ Formu temizle
       setNewProductName('');
       setNewProductCategory('');
       setNewProductBrand('');
@@ -677,7 +679,16 @@ export default function App() {
       setShowCategoryPicker(false);
       setShowSeasonPicker(false);
       setShowWeatherPicker(false);
-      fetchClothingItems();
+
+      // ✅ FİLTRELERİ TEMİZLE (yeni ürünün görünmesini sağla)
+      clearFilters();
+
+      // ✅ Ürünleri yeniden çek
+      await fetchClothingItems();
+
+      // ✅ Kullanıcıya bilgi ver
+      setMessage(`✅ Product "${newProductName}" added! Total: ${clothingItems.length + 1} products`);
+
     } catch (error) {
       console.log('❌ Failed to add product:', error.response?.data || error.message);
       Alert.alert('Error', `Failed to add product: ${error.response?.data?.message || error.message}`);
